@@ -50,6 +50,11 @@ def run(description: str, *, name: str = "part", model: str = "qwen2.5-coder:32b
 
         ok, error = render_png(openscad, scad, png)
         if not ok:
+            if export_stl(openscad, scad, stl)[0]:
+                ok, error = True, ""  # headless cura: STL prueba la compilacion
+            else:
+                error = "preview and STL export both failed: " + error
+        if not ok:
             history.append({"attempt": attempt, "compiled": False, "feedback": error[:200]})
             print(f"[attempt {attempt}] compiled=False  error={error[:140]!r}")
             continue

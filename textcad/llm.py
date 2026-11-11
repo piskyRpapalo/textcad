@@ -15,7 +15,7 @@ import os
 import urllib.request
 from pathlib import Path
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_URL = os.environ.get("TEXTCAD_OLLAMA_URL", "http://localhost:11434") + "/api/generate"
 
 # How long Ollama keeps a model resident in VRAM after a call. Default 30s so
 # textcad releases the GPU shortly after a run (it shares the card with other

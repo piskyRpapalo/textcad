@@ -47,7 +47,7 @@ def render_png(openscad: str, scad: Path, png: Path) -> tuple[bool, str]:
     """Default isometric preview render."""
     return _run(openscad, scad, png, [
         "--autocenter", "--viewall", "--imgsize=1024,768",
-        "--colorscheme=Tomorrow", "--render",
+        "--colorscheme=Tomorrow", 
     ])
 
 
@@ -56,7 +56,7 @@ def _ortho(openscad: str, scad: Path, png: Path, eye: str) -> tuple[bool, str]:
     auto-fits, so only the eye *direction* matters."""
     return _run(openscad, scad, png, [
         "--projection=o", f"--camera={eye},0,0,0", "--viewall", "--autocenter",
-        "--imgsize=1024,768", "--colorscheme=Tomorrow", "--render",
+        "--imgsize=1024,768", "--colorscheme=Tomorrow", 
     ])
 
 
