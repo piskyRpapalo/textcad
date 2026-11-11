@@ -57,6 +57,19 @@ Example parts in `examples/`:
 
 With the default backend nothing leaves your machine. The `claude` and `codex` backends are opt-in and run their CLI from an empty temporary folder so the CLI does not read the current project's files.
 
+To select a **local loopback** Ollama tunnel (for example the rack's station tunnel), set
+`TEXTCAD_OLLAMA_URL=http://127.0.0.1:21434`. The value must be an HTTP
+base URL on `localhost`, `127.0.0.1` or `[::1]` with an explicit port;
+external hosts, embedded credentials and paths are rejected. No remote
+fallback is attempted.
+
+On headless Linux, OpenSCAD PNG export may fail although STL export works.
+In that case `preview_check: not run` and `png: null` are reported;
+a nonempty STL only proves the export gate, **not** verified dimensions,
+vision, tolerances or physical printability. If no images rendered, an
+optional vision inspector is not called and `vision_check: not run`.
+Human review is required before printing.
+
 ### Stack
 
 Python 3.10+ with only the standard library at runtime; Pillow is optional (it builds the contact sheets for the vision check), and OpenSCAD is called as an external program.

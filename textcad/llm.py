@@ -13,9 +13,26 @@ import base64
 import json
 import os
 import urllib.request
+from urllib.parse import urlsplit
 from pathlib import Path
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+def _ollama_endpoint() -> str:
+    """Only accept explicit loopback Ollama endpoints; never silently send CAD away."""
+    base = os.environ.get("TEXTCAD_OLLAMA_URL", "http://localhost:11434")
+    try:
+        parts = urlsplit(base)
+        if (parts.scheme != "http" or
+                parts.hostname not in ("127.0.0.1", "localhost", "::1") or
+                parts.port is None or not (1 <= parts.port <= 65535) or
+                parts.username is not None or parts.password is not None or
+                parts.path not in ("", "/") or parts.query or parts.fragment):
+            raise ValueError("loopback http://host:port required")
+    except ValueError as exc:
+        raise ValueError("TEXTCAD_OLLAMA_URL must be a loopback HTTP base URL") from exc
+    return base.rstrip("/") + "/api/generate"
+
+
+OLLAMA_URL = _ollama_endpoint()
 
 # How long Ollama keeps a model resident in VRAM after a call. Default 30s so
 # textcad releases the GPU shortly after a run (it shares the card with other
