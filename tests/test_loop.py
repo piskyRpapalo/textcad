@@ -28,7 +28,9 @@ def test_compile_error_feeds_back_then_succeeds(monkeypatch, tmp_path):
         calls["n"] += 1
         return (calls["n"] > 1, "" if calls["n"] > 1 else "Parser error")
 
-    _patch(monkeypatch, render=render, export=lambda o, s, p: (True, ""))
+    _patch(monkeypatch, render=render,
+           export=lambda o, s, p: (calls["n"] > 1,
+                                    "" if calls["n"] > 1 else "Parser error"))
     res = run("a cube", name="t", iters=3, out_dir=tmp_path)
     assert res["attempts"] == 2
     assert res["history"][0]["compiled"] is False
@@ -84,7 +86,7 @@ def test_vision_check_status_when_passed_and_when_off(monkeypatch, tmp_path):
 
 def test_no_convergence_within_budget(monkeypatch, tmp_path):
     _patch(monkeypatch, render=lambda o, s, p: (False, "always broken"),
-           export=lambda o, s, p: (True, ""))
+           export=lambda o, s, p: (False, "invalid STL"))
     res = run("a cube", name="t", iters=2, out_dir=tmp_path)
     assert res["stl"] is None
     assert "did not converge" in res["error"]
@@ -95,3 +97,41 @@ def test_missing_openscad_returns_error(monkeypatch, tmp_path):
     monkeypatch.setattr(loop, "find_openscad", lambda: None)
     res = run("a cube", name="t", out_dir=tmp_path)
     assert "OpenSCAD binary not found" in res["error"]
+
+
+def test_headless_preview_valid_stl_is_exported_once(monkeypatch, tmp_path):
+    calls = []
+    def export(o, s, p):
+        calls.append(str(p))
+        return True, ""
+    _patch(monkeypatch, render=lambda o, s, p: (False, "RC=139 headless"), export=export)
+    result = run("washer", name="headless", out_dir=tmp_path)
+    assert result["stl"] is not None
+    assert result["png"] is None
+    assert result["preview_check"] == "not run"
+    assert result["vision_check"] == "off"
+    assert len(calls) == 1
+
+
+def test_headless_without_images_never_calls_vision(monkeypatch, tmp_path):
+    _patch(monkeypatch, render=lambda o, s, p: (False, "headless"),
+           export=lambda o, s, p: (True, ""))
+    monkeypatch.setattr(loop, "render_views", lambda *a: [])
+    def forbidden_inspector(*args):
+        raise AssertionError("vision called with nonexistent image")
+    result = run("washer", name="headless", out_dir=tmp_path,
+                 inspector=forbidden_inspector)
+    assert result["stl"] is not None
+    assert result["png"] is None
+    assert result["vision_check"] == "not run"
+    assert result["history"][0]["approved"] is None
+    assert result["history"][0]["feedback"] == "render_unavailable"
+
+
+def test_headless_and_stl_failure_remain_rejected(monkeypatch, tmp_path):
+    _patch(monkeypatch, render=lambda o, s, p: (False, "RC=139"),
+           export=lambda o, s, p: (False, "parser error"))
+    result = run("bad geometry", name="broken", iters=2, out_dir=tmp_path)
+    assert result["stl"] is None
+    assert len(result["history"]) == 2
+    assert all("parser error" in item["feedback"] for item in result["history"])
